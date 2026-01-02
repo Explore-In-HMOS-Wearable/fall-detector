@@ -1,0 +1,24 @@
+{
+  "routerMap": [
+    {
+      "name": "Home",
+      "pageSourceFile": "src/main/ets/pages/HomePage.ets",
+      "buildFunction": "HomeBuilder"
+    },
+    {
+      "name": "History",
+      "pageSourceFile": "src/main/ets/pages/HistoryPage.ets",
+      "buildFunction": "HistoryBuilder"
+    },
+    {
+      "name": "Settings",
+      "pageSourceFile": "src/main/ets/pages/SettingsPage.ets",
+      "buildFunction": "SettingsBuilder"
+    },
+    {
+      "name": "Alert",
+      "pageSourceFile": "src/main/ets/pages/AlertPage.ets",
+      "buildFunction": "AlertBuilder"
+    }
+  ]
+}
