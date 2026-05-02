@@ -68,8 +68,10 @@ export class SensorService {
 
     try {
       sensor.on(sensor.SensorId.ACCELEROMETER, (data) => {
-        this.accelCb(data.x, data.y, data.z);
-      });
+        if (this.accelCb) {
+          this.accelCb(data.x, data.y, data.z);
+        }
+      }, { interval: 100000000 });
     } catch (error) {
       const e: BusinessError = error as BusinessError;
       console.error(`ACCEL on failed. Code: ${e.code}, message: ${e.message}`);
@@ -77,8 +79,10 @@ export class SensorService {
 
     try {
       sensor.on(sensor.SensorId.GYROSCOPE, (data) => {
-        this.gyroCb(data.x, data.y, data.z);
-      });
+        if (this.gyroCb) {
+          this.gyroCb(data.x, data.y, data.z);
+        }
+      }, { interval: 100000000 });
     } catch (error) {
       const e: BusinessError = error as BusinessError;
       console.error(`GYRO on failed. Code: ${e.code}, message: ${e.message}`);

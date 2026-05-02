@@ -1,4 +1,6 @@
 import { fallStore, type FallEvent } from '../store/FallStore';
+import { hapticService } from '../services/HapticService';
+import { common } from '@kit.AbilityKit';
 
 @Builder
 export function HistoryBuilder(): void {
@@ -9,9 +11,10 @@ export function HistoryBuilder(): void {
 struct HistoryPage {
   private pathStack: NavPathStack = new NavPathStack();
   @State events: FallEvent[] = [];
+  private context = this.getUIContext().getHostContext() as common.UIAbilityContext;
 
-  private refresh(): void {
-    this.events = fallStore.getEvents();
+  async refresh(): Promise<void> {
+    this.events = await fallStore.getEvents();
   }
 
   private fmt(ts: number): string {
@@ -24,56 +27,77 @@ struct HistoryPage {
 
   build() {
     NavDestination() {
-      Column({ space: 10 }) {
-        Text('History')
-          .fontSize(22)
+      Column({ space: 6 }) {
+        Text($r('app.string.title_history'))
+          .fontSize(18)
           .fontWeight(FontWeight.Bold)
-          .margin({ top: 12 });
+          .margin({ top: 10 });
 
-        List() {
-          ForEach(this.events, (e: FallEvent) => {
-            ListItem() {
-              Column({ space: 2 }) {
-                Text(`Fall • ${this.fmt(e.ts)}`)
-                  .fontSize(16)
-                  .fontWeight(FontWeight.Medium);
+        if (this.events.length === 0) {
+          Column({ space: 8 }) {
+            Text('🛡️').fontSize(30)
+            Text($r('app.string.history_empty'))
+              .fontSize(14).fontColor('#666666')
+          }
+          .layoutWeight(1)
+          .justifyContent(FlexAlign.Center)
 
-                Text(`acc ${e.accPeak.toFixed(1)} | gyro ${e.gyroPeak.toFixed(1)}`)
-                  .fontSize(12)
-                  .opacity(0.8);
+        } else {
+          List({ space: 4 }) {
+            ForEach(this.events, (e: FallEvent) => {
+              ListItem() {
+                Column({ space: 2 }) {
+                  Text(`${this.context.resourceManager.getStringSync($r('app.string.status_detected').id)} • ${this.fmt(e.ts)}`)
+                    .fontSize(13)
+                    .fontWeight(FontWeight.Medium);
+
+                  Text(`${this.context.resourceManager.getStringSync($r('app.string.label_acc').id)} ${e.accPeak.toFixed(1)} | ${this.context.resourceManager.getStringSync($r('app.string.label_gyro').id)} ${e.gyroPeak.toFixed(1)}`)
+                    .fontSize(11)
+                    .opacity(0.8);
+                }
+                .padding(8)
+                .borderRadius(12)
+                .backgroundColor('#1A1A1A')
+                .width('100%');
               }
-              .padding(10)
-              .borderRadius(12)
-              .backgroundColor('#1A1A1A')
-              .width('100%');
-            }
-          }, (e: FallEvent) => e.ts.toString());
+            }, (e: FallEvent) => e.ts?.toString() || e.ts.toString());
+          }
+          .width('90%')
+          .layoutWeight(1)
+          .scrollBar(BarState.Off)
+          .focusable(true)
+          .defaultFocus(true);
         }
-        .width('92%')
-        .layoutWeight(1);
 
-        Column({ space: 10 }) {
-          Button('Clear')
-            .backgroundColor('#54101D')
-            .width('36%')
-            .height(20)
-            .onClick(() => {
-              fallStore.clearEvents();
+        Row({ space: 6 }) {
+          Button($r('app.string.btn_clear'))
+            .backgroundColor('#8B0000')
+            .width('40%') // Reduced width
+            .height(30)
+            .fontSize(11)
+            .onClick(async () => {
+              hapticService.playClick();
+              await fallStore.clearEvents();
               this.events = [];
             });
 
-          Button('Back')
-            .backgroundColor('#54101D')
-            .width('36%')
-            .height(20)
-            .onClick(() => this.pathStack.pop());
+          Button($r('app.string.btn_back'))
+            .backgroundColor('#2A2A2A')
+            .width('40%') // Reduced width
+            .height(30)
+            .fontSize(11)
+            .onClick(() => {
+              hapticService.playClick();
+              this.pathStack.pop();
+            });
         }
-        .width('92%')
-        .margin({ bottom: 12 });
+        .width('65%')
+        .justifyContent(FlexAlign.Center)
+        .margin({ bottom: 20 });
       }
       .width('100%')
       .height('100%')
-      .backgroundColor('#0E0E0E')
+      .backgroundColor('#000000')
       .alignItems(HorizontalAlign.Center);
     }
     .hideTitleBar(true, false)

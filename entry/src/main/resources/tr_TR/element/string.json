@@ -1,0 +1,25 @@
+{
+  "string": [
+    { "name": "app_name", "value": "Düşme Dedektörü" },
+    { "name": "status_stopped", "value": "Durduruldu" },
+    { "name": "status_monitoring", "value": "İzleniyor" },
+    { "name": "status_detected", "value": "Düşme Algılandı!" },
+    { "name": "label_acc", "value": "İvme" },
+    { "name": "label_gyro", "value": "Jiro" },
+    { "name": "btn_start", "value": "Başlat" },
+    { "name": "btn_stop", "value": "Durdur" },
+    { "name": "btn_fall", "value": "Düşme" },
+    { "name": "btn_history", "value": "Geçmiş" },
+    { "name": "btn_settings", "value": "Ayarlar" },
+    { "name": "btn_back", "value": "Geri" },
+    { "name": "btn_clear", "value": "Temizle" },
+    { "name": "btn_ok", "value": "İYİYİM" },
+    { "name": "title_settings", "value": "Ayarlar" },
+    { "name": "title_history", "value": "Geçmiş" },
+    { "name": "title_alert", "value": "DÜŞME!" },
+    { "name": "setting_mock", "value": "Simüle" },
+    { "name": "setting_impact", "value": "Darbe" },
+    { "name": "setting_gyro", "value": "Jiro" },
+    { "name": "setting_immobile", "value": "Hareketsizlik" }
+  ]
+}

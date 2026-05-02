@@ -1,8 +1,5 @@
 {
   "string": [
-    { "name": "module_desc", "value": "Fall detection module" },
-    { "name": "EntryAbility_desc", "value": "Main Ability" },
-    { "name": "EntryAbility_label", "value": "Fall Detector" },
     { "name": "app_name", "value": "Fall Detector" },
     { "name": "status_stopped", "value": "Stopped" },
     { "name": "status_monitoring", "value": "Monitoring" },

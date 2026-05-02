@@ -1,18 +1,16 @@
 // Index.ets
-import { fallStore, DEFAULT_CONFIG_JSON, DEFAULT_PREFS_JSON } from '../store/FallStore';
+import { fallStore } from '../store/FallStore';
+import { common } from '@kit.AbilityKit';
 
 @Entry
 @Component
 struct Index {
   private stack: NavPathStack = new NavPathStack();
   private started: boolean = false;
+  private context = this.getUIContext().getHostContext() as common.UIAbilityContext;
 
-  aboutToAppear(): void {
-    PersistentStorage.persistProp('fall_events', JSON.stringify([]));
-    PersistentStorage.persistProp('fall_config', DEFAULT_CONFIG_JSON);
-    PersistentStorage.persistProp('fall_prefs', DEFAULT_PREFS_JSON);
-
-    fallStore.init();
+  async aboutToAppear(): Promise<void> {
+    await fallStore.init(this.context);
   }
 
   build() {

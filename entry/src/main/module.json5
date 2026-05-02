@@ -11,10 +11,6 @@
     "installationFree": false,
     "pages": "$profile:main_pages",
     "routerMap": "$profile:route_map",
-    "requestPermissions": [
-      {"name": "ohos.permission.ACCELEROMETER"},
-      {"name": "ohos.permission.GYROSCOPE"}
-    ],
     "abilities": [
       {
         "name": "EntryAbility",
@@ -50,6 +46,11 @@
           }
         ]
       }
+    ],
+    "requestPermissions": [
+      {"name": "ohos.permission.ACCELEROMETER"},
+      {"name": "ohos.permission.GYROSCOPE"},
+      {"name": "ohos.permission.VIBRATE"}
     ]
   }
 }

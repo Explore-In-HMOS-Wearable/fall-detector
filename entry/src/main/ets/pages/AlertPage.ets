@@ -1,6 +1,8 @@
 // AlertPage.ets
 
 import type { FallEvent } from '../store/FallStore';
+import { hapticService } from '../services/HapticService';
+import { common } from '@kit.AbilityKit';
 
 const EMPTY_EVENT: FallEvent = { ts: 0, accPeak: 0, gyroPeak: 0 };
 
@@ -13,33 +15,45 @@ export function AlertBuilder(): void {
 struct AlertPage {
   private pathStack: NavPathStack = new NavPathStack();
   @State event: FallEvent = EMPTY_EVENT;
+  private context = this.getUIContext().getHostContext() as common.UIAbilityContext;
 
   build() {
     NavDestination() {
-      Scroll() {
-        Column({ space: 8 }) {
-          Text('⚠️ FALL DETECTED')
-            .fontSize(20)
-            .fontWeight(FontWeight.Bold)
-            .width('100%')
-            .textAlign(TextAlign.Center)
-            .margin({ top: 18 });
+      Column({ space: 8 }) {
+        Blank()
 
-          Text(`accPeak: ${this.event.accPeak.toFixed(1)} m/s²`).fontSize(14).opacity(0.9);
-          Text(`gyroPeak: ${this.event.gyroPeak.toFixed(1)} rad/s`).fontSize(14).opacity(0.9);
+        Text($r('app.string.title_alert'))
+          .fontSize(20)
+          .fontWeight(FontWeight.Bold)
+          .width('100%')
+          .textAlign(TextAlign.Center);
 
-          Button("I'M OK")
-            .backgroundColor(Color.Red)
-            .width('50%')
-            .height(23)
-            .onClick(() => this.pathStack.pop());
+        Column({ space: 2 }) {
+          Text(`${this.context.resourceManager.getStringSync($r('app.string.label_acc').id)}: ${this.event.accPeak.toFixed(1)}`).fontSize(12).opacity(0.9);
+          Text(`${this.context.resourceManager.getStringSync($r('app.string.label_gyro').id)}: ${this.event.gyroPeak.toFixed(1)}`).fontSize(12).opacity(0.9);
         }
-        .width('100%')
-        .alignItems(HorizontalAlign.Center);
+        .margin({ top: 4, bottom: 8 });
+
+        Button($r('app.string.btn_ok'))
+          .backgroundColor('#1D3B24')
+          .fontColor(Color.White)
+          .width('80%')
+          .height(44)
+          .fontSize(16)
+          .fontWeight(FontWeight.Bold)
+          .borderRadius(22)
+          .onClick(() => {
+            hapticService.playClick();
+            this.pathStack.pop();
+          });
+
+        Blank() // Pushes content from bottom
       }
       .width('100%')
       .height('100%')
-      .backgroundColor('#2A0000');
+      .backgroundColor('#3A0000')
+      .alignItems(HorizontalAlign.Center)
+      .justifyContent(FlexAlign.Center);
     }
     .hideTitleBar(true, false)
     .hideToolBar(true, false)

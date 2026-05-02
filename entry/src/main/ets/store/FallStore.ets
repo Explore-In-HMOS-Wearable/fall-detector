@@ -1,32 +1,40 @@
-// FallStore.ets
+import { relationalStore, preferences } from '@kit.ArkData';
+import { common } from '@kit.AbilityKit';
+import { BusinessError } from '@kit.BasicServicesKit';
+
 export interface FallEvent {
+  id?: number;
   ts: number;
   accPeak: number;
   gyroPeak: number;
 }
 
 export interface FallConfig {
-  impactThreshold: number;     // accel magnitude threshold
-  gyroThreshold: number;       // gyro magnitude threshold
+  impactThreshold: number;
+  gyroThreshold: number;
   immobileTimeMs: number;
-  immobileAcc: number;         // accel magnitude for immobility
-  immobileGyro: number;        // gyro magnitude for immobility
+  immobileAcc: number;
+  immobileGyro: number;
 }
 
 export interface FallPrefs {
   mockEnabled: boolean;
 }
 
-const KEY_PREFS = 'fall_prefs';
-
-const DEFAULT_PREFS: FallPrefs = {
-  mockEnabled: true
+const STORE_CONFIG: relationalStore.StoreConfig = {
+  name: 'FallDetector.db',
+  securityLevel: relationalStore.SecurityLevel.S1
 };
 
-export const DEFAULT_PREFS_JSON: string = JSON.stringify(DEFAULT_PREFS);
+const TABLE_NAME = 'fall_events';
+const CREATE_TABLE_SQL = `CREATE TABLE IF NOT EXISTS ${TABLE_NAME} (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  ts INTEGER NOT NULL,
+  accPeak REAL NOT NULL,
+  gyroPeak REAL NOT NULL
+)`;
 
-const KEY_EVENTS = 'fall_events';
-const KEY_CONFIG = 'fall_config';
+const PREFS_NAME = 'fall_prefs';
 const DEFAULT_CONFIG: FallConfig = {
   impactThreshold: 22.0,
   gyroThreshold: 4.5,
@@ -35,76 +43,97 @@ const DEFAULT_CONFIG: FallConfig = {
   immobileGyro: 0.6
 };
 
-export const DEFAULT_CONFIG_JSON: string = JSON.stringify(DEFAULT_CONFIG);
+class FallStore {
+  private rdbStore: relationalStore.RdbStore | null = null;
+  private prefs: preferences.Preferences | null = null;
+  private context: common.UIAbilityContext | null = null;
 
-function safeParseJson<T>(s: string, fallback: T): T {
-  try {
-    return JSON.parse(s) as T;
-  } catch (_) {
-    return fallback;
-  }
-}
-
-interface IFallStore {
-  init(): void;
-  addEvent(e: FallEvent): void;
-  getEvents(): FallEvent[];
-  clearEvents(): void;
-  getConfig(): FallConfig;
-  setConfig(c: FallConfig): void;
-  getPrefs(): FallPrefs;
-  setPrefs(p: FallPrefs): void;
-}
-
-class FallStoreImpl implements IFallStore {
-  init(): void {
-    AppStorage.setOrCreate(KEY_EVENTS, JSON.stringify([]));
-    AppStorage.setOrCreate(KEY_CONFIG, JSON.stringify(DEFAULT_CONFIG));
-
-    const ev: string | undefined = AppStorage.get(KEY_EVENTS) as (string | undefined);
-    if(!ev || ev.length === 0) {
-      AppStorage.setOrCreate(KEY_EVENTS, JSON.stringify([]));
-    }
-
-    const cfg: string | undefined = AppStorage.get(KEY_CONFIG) as (string | undefined);
-    if(!cfg || cfg.length === 0) {
-      AppStorage.setOrCreate(KEY_CONFIG, DEFAULT_CONFIG_JSON);
+  async init(context: common.UIAbilityContext): Promise<void> {
+    this.context = context;
+    try {
+      this.rdbStore = await relationalStore.getRdbStore(context, STORE_CONFIG);
+      await this.rdbStore.executeSql(CREATE_TABLE_SQL);
+      this.prefs = await preferences.getPreferences(context, PREFS_NAME);
+    } catch (err) {
+      console.error(`FallStore init failed: ${JSON.stringify(err)}`);
     }
   }
 
-  getPrefs(): FallPrefs {
-    const raw: string = AppStorage.get(KEY_PREFS) as string;
-    return safeParseJson<FallPrefs>(raw, DEFAULT_PREFS);
+  async addEvent(e: FallEvent): Promise<void> {
+    if (!this.rdbStore) {
+      return;
+    }
+    const valueBucket: relationalStore.ValuesBucket = {
+      'ts': e.ts,
+      'accPeak': e.accPeak,
+      'gyroPeak': e.gyroPeak
+    };
+    await this.rdbStore.insert(TABLE_NAME, valueBucket);
   }
 
-  setPrefs(p: FallPrefs): void {
-    AppStorage.set(KEY_PREFS, JSON.stringify(p));
+  async getEvents(): Promise<FallEvent[]> {
+    if (!this.rdbStore) {
+      return [];
+    }
+    const predicates = new relationalStore.RdbPredicates(TABLE_NAME);
+    predicates.orderByDesc('ts');
+    const resultSet = await this.rdbStore.query(predicates);
+    const result: FallEvent[] = [];
+    while (resultSet.goToNextRow()) {
+      result.push({
+        id: resultSet.getLong(resultSet.getColumnIndex('id')),
+        ts: resultSet.getLong(resultSet.getColumnIndex('ts')),
+        accPeak: resultSet.getDouble(resultSet.getColumnIndex('accPeak')),
+        gyroPeak: resultSet.getDouble(resultSet.getColumnIndex('gyroPeak'))
+      });
+    }
+    resultSet.close();
+    return result;
   }
 
-  addEvent(e: FallEvent): void {
-    const raw = AppStorage.get(KEY_EVENTS) as string;
-    const list = safeParseJson<FallEvent[]>(raw, []);
-    list.unshift(e);
-    AppStorage.set(KEY_EVENTS, JSON.stringify(list.slice(0, 50)));
+  async clearEvents(): Promise<void> {
+    if (!this.rdbStore) {
+      return;
+    }
+    const predicates = new relationalStore.RdbPredicates(TABLE_NAME);
+    await this.rdbStore.delete(predicates);
   }
 
-  getEvents(): FallEvent[] {
-    const raw = AppStorage.get(KEY_EVENTS) as string;
-    return safeParseJson<FallEvent[]>(raw, []);
+  async getConfig(): Promise<FallConfig> {
+    if (!this.prefs) {
+      return DEFAULT_CONFIG;
+    }
+    const raw = await this.prefs.get('config', JSON.stringify(DEFAULT_CONFIG)) as string;
+    try {
+      return JSON.parse(raw) as FallConfig;
+    } catch (_) {
+      return DEFAULT_CONFIG;
+    }
   }
 
-  clearEvents(): void {
-    AppStorage.set(KEY_EVENTS, JSON.stringify([]));
+  async setConfig(c: FallConfig): Promise<void> {
+    if (!this.prefs) {
+      return;
+    }
+    await this.prefs.put('config', JSON.stringify(c));
+    await this.prefs.flush();
   }
 
-  getConfig(): FallConfig {
-    const raw = AppStorage.get(KEY_CONFIG) as string;
-    return safeParseJson<FallConfig>(raw, DEFAULT_CONFIG);
+  async getPrefs(): Promise<FallPrefs> {
+    if (!this.prefs) {
+      return { mockEnabled: true };
+    }
+    const mock = await this.prefs.get('mockEnabled', true) as boolean;
+    return { mockEnabled: mock };
   }
 
-  setConfig(c: FallConfig): void {
-    AppStorage.set(KEY_CONFIG, JSON.stringify(c));
+  async setPrefs(p: FallPrefs): Promise<void> {
+    if (!this.prefs) {
+      return;
+    }
+    await this.prefs.put('mockEnabled', p.mockEnabled);
+    await this.prefs.flush();
   }
 }
 
-export const fallStore: IFallStore = new FallStoreImpl();
+export const fallStore = new FallStore();

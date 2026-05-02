@@ -28,7 +28,10 @@ export class DetectionEngine {
     this.onFallCb = cb;
   }
 
-  processAccel(x: number, y: number, z: number): void {
+  processAccel(x: number | undefined, y: number | undefined, z: number | undefined): void {
+    if (x === undefined || y === undefined || z === undefined) {
+      return;
+    }
     const mag = Math.sqrt((x*x) + (y*y) + (z*z));
     this.lastAccMag = mag;
 
@@ -41,7 +44,10 @@ export class DetectionEngine {
     this.check();
   }
 
-  processGyro(x: number, y: number, z: number): void {
+  processGyro(x: number | undefined, y: number | undefined, z: number | undefined): void {
+    if (x === undefined || y === undefined || z === undefined) {
+      return;
+    }
     const mag = Math.sqrt((x*x) + (y*y) + (z*z));
     this.lastGyroMag = mag;
 
